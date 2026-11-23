@@ -33,11 +33,13 @@ export class DialogueModal implements ModalView<void> {
     body.append(el('div', 'dialogue-speaker', this.options.speaker));
     this.textEl = el('p', 'dialogue-text');
     body.append(this.textEl);
-    const next = button('Continue [E]', 'px-btn px-btn--small', () => this.advance());
+    // No own handler: the click bubbles to the box, so tapping ANYWHERE on it advances.
+    const next = button('Continue [E]', 'px-btn px-btn--small');
     const row = el('div', 'dialogue-actions');
     row.append(next);
     body.append(row);
     host.append(body);
+    host.addEventListener('click', () => this.advance());
 
     this.timer = window.setInterval(() => {
       this.shown++;

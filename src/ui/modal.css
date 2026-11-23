@@ -363,3 +363,104 @@
 .px-btn--start:hover:not(:disabled) { background: #86e6a9; }
 .title-blink { margin-top: 16px; font-size: 8px; color: var(--ui-gold); animation: title-blink 1s steps(1) infinite; }
 @keyframes title-blink { 50% { opacity: 0; } }
+
+/* ============================================================
+   Mobile / touch
+   ============================================================ */
+
+.px-btn, .sound-toggle, .stage, .touch-interact { touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+.stage { touch-action: none; } /* blocks are draggable with a finger */
+.modal-overlay { overscroll-behavior: contain; }
+.modal { max-width: min(760px, 95vw); max-height: calc(100dvh - 32px); -webkit-overflow-scrolling: touch; }
+.modal.dialogue { max-width: min(820px, 95vw); cursor: pointer; }
+.modal-overlay[data-layout='fullscreen'] .modal { max-width: min(920px, 95vw); }
+.modal.title-screen { max-width: min(640px, 95vw); }
+
+/* floating copy of a puzzle block that follows the finger / mouse */
+.stage-ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 100;
+  margin: 0;
+  pointer-events: none;
+  opacity: 0.92;
+  box-shadow: 6px 8px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* INTERACT button — touch devices only */
+.touch-interact {
+  display: none;
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 40;
+  min-width: 96px;
+  padding: 16px 14px;
+  font-family: 'Press Start 2P', ui-monospace, monospace;
+  font-size: 10px;
+  color: #f4f1e8;
+  background: rgba(20, 18, 26, 0.55);
+  border: 3px solid rgba(240, 180, 76, 0.5);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.5);
+  opacity: 0.55;
+  cursor: pointer;
+}
+body.is-touch .touch-interact { display: block; }
+.touch-interact.is-ready {
+  opacity: 1;
+  color: var(--ui-ink);
+  background: var(--ui-gold);
+  border-color: var(--ui-ink);
+  animation: interact-pulse 0.9s steps(2) infinite;
+}
+.touch-interact.is-hidden { display: none !important; }
+.touch-interact:active { transform: translate(2px, 2px); }
+@keyframes interact-pulse { 50% { box-shadow: 0 0 0 4px rgba(255, 215, 106, 0.55), 3px 3px 0 #000; } }
+
+/* phones: portrait & small landscape */
+@media (max-width: 700px), (max-height: 500px) {
+  .objective { max-width: calc(100vw - 120px); padding: 6px 8px; font-size: 8px; border-width: 2px; margin-top: 0; }
+  .sound-toggle { font-size: 7px; padding: 6px; border-width: 2px; }
+
+  .modal-overlay { padding: 8px; }
+  .modal-overlay[data-layout='bottom'] { padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+  .modal { padding: 14px 12px; font-size: 9px; line-height: 1.8; box-shadow: 0 0 0 3px #f4f1e8, 0 0 0 6px var(--ui-ink), 6px 8px 0 4px rgba(0, 0, 0, 0.35); }
+  .modal-title { font-size: 12px; margin-bottom: 10px; }
+  .px-btn { padding: 10px; font-size: 9px; }
+
+  .modal.dialogue { gap: 10px; }
+  .dialogue-portrait { padding: 3px; }
+  .dialogue-portrait .px-portrait { width: 40px !important; height: 60px !important; }
+  .dialogue-text { font-size: 9px; min-height: 0; }
+
+  .doc-page { padding: 10px 10px 30px; font-size: 8px; }
+  .stage { min-width: 0; flex: 1 1 28%; padding: 10px 4px; font-size: 8px; }
+  .pipeline-arrow { display: none; }
+  .meter-seg { height: 14px; }
+
+  .cert { padding: 6px; }
+  .cert-inner { padding: 16px 12px 52px; box-shadow: inset 0 0 0 4px #fffdf6, inset 0 0 0 6px var(--ui-gold); }
+  .cert-ribbon { font-size: 7px; padding: 4px 6px; }
+  .cert-title { margin: 12px 0 10px; }
+  .cert-portraits .px-portrait { width: 40px !important; height: 60px !important; }
+  .cert-body { font-size: 8px; margin-bottom: 14px; }
+  .cert-ref { font-size: 7px; }
+  .cert-pagenum { font-size: 12px; right: 10px; bottom: 8px; }
+  .cert-actions { gap: 8px; margin-top: 12px; }
+
+  .modal.title-screen { padding: 18px 12px 14px; }
+  .title-cast .px-portrait { width: 40px !important; height: 60px !important; }
+  .title-controls { font-size: 8px; margin: 10px 0 12px; }
+  .px-btn--start { padding: 12px 22px; font-size: 11px; }
+}
+
+/* very short landscape phones: drop the decorative portraits */
+@media (max-height: 430px) {
+  .title-cast, .cert-portraits, .dialogue-portrait { display: none; }
+  .title-main { font-size: 20px; }
+  .title-subtitle { margin: 10px 0 4px; }
+}
+
+/* the title's controls line on touch devices */
+body.is-touch .title-controls::after { content: '\A Touch: hold or tap to walk • tap target / INTERACT'; white-space: pre-wrap; }

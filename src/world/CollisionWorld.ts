@@ -8,6 +8,7 @@ export interface Body {
 }
 
 const NUDGE_RANGE = 6; // px of corner forgiveness when sliding past desk corners
+const MOSTLY_STRAIGHT = 0.35; // minor/major axis ratio still treated as a straight push
 
 /**
  * Resolves movement against static map geometry and other bodies.
@@ -51,9 +52,13 @@ export class CollisionWorld {
       ny = ty;
     }
 
-    // Corner assist: pushing straight into a corner slides you around it.
-    if (blockedX && dy === 0) ny += this.nudge(body, nx, ny, Math.sign(dx), 0, Math.abs(dx));
-    else if (blockedY && dx === 0) nx += this.nudge(body, nx, ny, 0, Math.sign(dy), Math.abs(dy));
+    // Corner assist: pushing (mostly) straight into a corner slides you around it.
+    // "Mostly" matters for analog touch input, which is never perfectly axis-aligned.
+    if (blockedX && Math.abs(dy) <= Math.abs(dx) * MOSTLY_STRAIGHT) {
+      ny += this.nudge(body, nx, ny, Math.sign(dx), 0, Math.abs(dx), Math.sign(dy));
+    } else if (blockedY && Math.abs(dx) <= Math.abs(dy) * MOSTLY_STRAIGHT) {
+      nx += this.nudge(body, nx, ny, 0, Math.sign(dy), Math.abs(dy), Math.sign(dx));
+    }
 
     return { x: nx, y: ny };
   }
@@ -103,9 +108,10 @@ export class CollisionWorld {
   }
 
   /** Returns a perpendicular offset (≤ speed) that frees the blocked direction, or 0. */
-  private nudge(body: Body, x: number, y: number, dirX: number, dirY: number, speed: number): number {
+  private nudge(body: Body, x: number, y: number, dirX: number, dirY: number, speed: number, prefer = 0): number {
+    const signs = prefer > 0 ? [1, -1] : [-1, 1]; // try the side the input leans towards first
     for (let o = 1; o <= NUDGE_RANGE; o++) {
-      for (const sign of [-1, 1]) {
+      for (const sign of signs) {
         const off = sign * o;
         const px = dirY !== 0 ? x + off : x + dirX;
         const py = dirX !== 0 ? y + off : y + dirY;

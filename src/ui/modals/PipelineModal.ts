@@ -13,6 +13,17 @@ const STAGE_COLOR: Readonly<Record<Stage, string>> = {
   Communications: 'stage--comms',
 };
 
+const DRAG_THRESHOLD_PX = 8;
+
+interface DragState {
+  from: number;
+  pointerId: number;
+  x0: number;
+  y0: number;
+  ghost: HTMLElement | null;
+  over: number;
+}
+
 function shuffledStages(): Stage[] {
   const s = [...PIPELINE_ORDER];
   do {
@@ -34,15 +45,18 @@ export class PipelineModal implements ModalView<void> {
   private solved = false;
   private closeTimer = 0;
 
-  constructor(private readonly sound: SoundPlayer) {}
   private list!: HTMLElement;
   private feedback!: HTMLElement;
+  private drag: DragState | null = null;
+  private suppressClick = false;
+
+  constructor(private readonly sound: SoundPlayer) {}
 
   mount(host: HTMLElement, done: () => void): void {
     host.append(el('div', 'modal-kicker', "Teacher's podium"));
     host.append(el('h2', 'modal-title', 'Basic Computer Operations'));
     host.append(
-      el('p', 'modal-prompt', 'Arrange the operations into the correct pipeline. Click two blocks to swap them, or drag & drop.'),
+      el('p', 'modal-prompt', 'Arrange the operations into the correct pipeline. Tap two blocks to swap them, or drag & drop.'),
     );
 
     this.list = el('div', 'pipeline');
@@ -76,6 +90,8 @@ export class PipelineModal implements ModalView<void> {
 
   dispose(): void {
     window.clearTimeout(this.closeTimer);
+    this.drag?.ghost?.remove();
+    this.drag = null;
   }
 
   private swap(a: number, b: number): void {
@@ -91,13 +107,18 @@ export class PipelineModal implements ModalView<void> {
     this.order.forEach((stage, i) => {
       if (i > 0) nodes.push(el('span', 'pipeline-arrow', '→'));
       const block = button('', `stage ${STAGE_COLOR[stage]}`);
+      block.dataset.index = String(i);
       block.append(el('span', 'stage-num', String(i + 1)), el('span', 'stage-label', stage));
       if (i === this.selected) block.classList.add('selected');
       const mark = this.marks[i];
       if (mark) block.classList.add(mark);
-      block.draggable = !this.solved;
 
+      // Tap-to-select & tap-to-swap (mouse click or finger tap)
       block.addEventListener('click', () => {
+        if (this.suppressClick) {
+          this.suppressClick = false;
+          return;
+        }
         if (this.solved) return;
         if (this.selected === -1) this.selected = i;
         else {
@@ -106,25 +127,62 @@ export class PipelineModal implements ModalView<void> {
         }
         this.render();
       });
-      block.addEventListener('dragstart', (e) => {
-        e.dataTransfer?.setData('text/plain', String(i));
-        block.classList.add('dragging');
-      });
-      block.addEventListener('dragend', () => block.classList.remove('dragging'));
-      block.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        block.classList.add('drop-target');
-      });
-      block.addEventListener('dragleave', () => block.classList.remove('drop-target'));
-      block.addEventListener('drop', (e) => {
-        e.preventDefault();
-        const from = Number(e.dataTransfer?.getData('text/plain') ?? -1);
-        this.selected = -1;
-        this.swap(from, i);
-        this.render();
-      });
+
+      // Drag & drop via unified Pointer Events (mouse, touch and pen alike)
+      block.addEventListener('pointerdown', (e) => this.dragStart(e, block, i));
+      block.addEventListener('pointermove', (e) => this.dragMove(e, block));
+      block.addEventListener('pointerup', (e) => this.dragEnd(e, true));
+      block.addEventListener('pointercancel', (e) => this.dragEnd(e, false));
       nodes.push(block);
     });
     this.list.replaceChildren(...nodes);
+  }
+
+  // ------------------------------------------------------------ pointer drag
+
+  private dragStart(e: PointerEvent, block: HTMLElement, index: number): void {
+    if (this.solved || this.drag || e.button > 0) return;
+    this.suppressClick = false;
+    block.setPointerCapture(e.pointerId);
+    this.drag = { from: index, pointerId: e.pointerId, x0: e.clientX, y0: e.clientY, ghost: null, over: -1 };
+  }
+
+  private dragMove(e: PointerEvent, block: HTMLElement): void {
+    const d = this.drag;
+    if (!d || d.pointerId !== e.pointerId) return;
+    if (!d.ghost) {
+      if (Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < DRAG_THRESHOLD_PX) return; // still a tap
+      const r = block.getBoundingClientRect();
+      const ghost = block.cloneNode(true) as HTMLElement;
+      ghost.classList.add('stage-ghost');
+      ghost.classList.remove('selected', 'wrong', 'right');
+      ghost.style.width = `${r.width}px`;
+      ghost.style.height = `${r.height}px`;
+      document.body.append(ghost);
+      d.ghost = ghost;
+      this.selected = -1;
+      block.classList.add('dragging');
+      block.classList.remove('selected');
+    }
+    e.preventDefault();
+    const g = d.ghost;
+    g.style.transform = `translate(${e.clientX - g.offsetWidth / 2}px, ${e.clientY - g.offsetHeight / 2}px) rotate(-3deg)`;
+
+    const under = document.elementFromPoint(e.clientX, e.clientY)?.closest<HTMLElement>('.stage');
+    d.over = under && this.list.contains(under) ? Number(under.dataset.index) : -1;
+    this.list.querySelectorAll<HTMLElement>('.stage').forEach((s) => {
+      s.classList.toggle('drop-target', Number(s.dataset.index) === d.over && d.over !== d.from);
+    });
+  }
+
+  private dragEnd(e: PointerEvent, commit: boolean): void {
+    const d = this.drag;
+    if (!d || d.pointerId !== e.pointerId) return;
+    this.drag = null;
+    if (!d.ghost) return; // it was a tap: the click handler takes over
+    d.ghost.remove();
+    this.suppressClick = true; // swallow the click that follows a drag
+    if (commit && d.over >= 0 && d.over !== d.from) this.swap(d.from, d.over);
+    this.render();
   }
 }

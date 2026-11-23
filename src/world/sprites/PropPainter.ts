@@ -282,3 +282,11 @@ export function paintEmoteBang(p: Pen): void {
   p(3, 10, 3, 1, o);
   p(4, 11, 1, 1, o);
 }
+
+const RING = ['00011111000', '01100000110', '10000000001', '10000000001', '10000000001', '01100000110', '00011111000'];
+
+/** 11×8 pixel target ring shown where a touch is steering the professor. */
+export function paintTouchRing(p: Pen): void {
+  glyph(p, RING, 0, 1, 'rgba(27,27,36,0.45)'); // drop shadow
+  glyph(p, RING, 0, 0, '#ffd23f');
+}

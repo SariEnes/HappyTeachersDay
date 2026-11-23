@@ -5,11 +5,16 @@ export class Camera {
   y = 0;
 
   constructor(
-    readonly viewWidth: number,
-    readonly viewHeight: number,
+    public viewWidth: number,
+    public viewHeight: number,
     private readonly worldWidth: number,
     private readonly worldHeight: number,
   ) {}
+
+  resize(viewWidth: number, viewHeight: number): void {
+    this.viewWidth = viewWidth;
+    this.viewHeight = viewHeight;
+  }
 
   /** Centre on a target; result is snapped to whole pixels to avoid shimmer. */
   follow(targetX: number, targetY: number): void {

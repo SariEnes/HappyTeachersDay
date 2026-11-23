@@ -5,7 +5,7 @@ import { createCanvas, makePen, type Pen } from './sprites/Pen';
 import {
   DESK_H, DESK_W, FLOOR_TILE, PODIUM_H, PODIUM_W, SMARTBOARD_H, SMARTBOARD_W, WHITEBOARD_H, WHITEBOARD_W,
   paintBin, paintClock, paintDeskUnit, paintEmoteBang, paintFloorTile, paintKeyPrompt, paintPlant,
-  paintPodium, paintShadow, paintSmartboard, paintWhiteboard, paintWindow, type DeskItem,
+  paintPodium, paintShadow, paintSmartboard, paintTouchRing, paintWhiteboard, paintWindow, type DeskItem,
 } from './sprites/PropPainter';
 import {
   ARROW_H, ARROW_W, GIFT_H, GIFT_W, SPOTLIGHT_H, SPOTLIGHT_W,
@@ -49,6 +49,7 @@ export class SpriteCache {
   shadow(): HTMLCanvasElement { return this.memo('shadow', 12, 4, paintShadow); }
   keyPrompt(): HTMLCanvasElement { return this.memo('key-e', 11, 12, paintKeyPrompt); }
   emoteBang(): HTMLCanvasElement { return this.memo('emote-bang', 9, 12, paintEmoteBang); }
+  touchRing(): HTMLCanvasElement { return this.memo('touch-ring', 11, 8, paintTouchRing); }
 
   // ---- quest visuals (Phase 2)
   giftBox(): HTMLCanvasElement { return this.memo('gift', GIFT_W, GIFT_H, paintGiftBox); }

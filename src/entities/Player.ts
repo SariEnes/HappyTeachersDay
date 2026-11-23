@@ -53,7 +53,10 @@ export class Player extends Entity {
     const horiz: Direction | null = ax < 0 ? 'left' : ax > 0 ? 'right' : null;
     const vert: Direction | null = ay < 0 ? 'up' : ay > 0 ? 'down' : null;
     if (horiz && vert) {
-      if (this.facing !== horiz && this.facing !== vert) this.facing = horiz;
+      // analog (touch) input: face the clearly dominant direction
+      if (Math.abs(ax) > Math.abs(ay) * 1.6) this.facing = horiz;
+      else if (Math.abs(ay) > Math.abs(ax) * 1.6) this.facing = vert;
+      else if (this.facing !== horiz && this.facing !== vert) this.facing = horiz;
     } else {
       this.facing = (horiz ?? vert) as Direction;
     }

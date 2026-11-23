@@ -14,8 +14,9 @@ import { QuestManager } from '../systems/QuestManager';
 import { RoomEffects } from '../systems/RoomEffects';
 import { ModalManager } from '../ui/ModalManager';
 import { SoundToggle } from '../ui/SoundToggle';
+import { TouchControls } from '../ui/TouchControls';
 import { PROFESSOR, SEVKI, createRandomStudent } from '../world/Appearance';
-import { ClassroomMap } from '../world/ClassroomMap';
+import { ClassroomMap, MAP_ROWS, TILE } from '../world/ClassroomMap';
 import { ClassroomRenderer, type ClassroomProps } from '../world/ClassroomRenderer';
 import { CollisionWorld } from '../world/CollisionWorld';
 import { SpriteCache } from '../world/SpriteCache';
@@ -45,6 +46,7 @@ export class Game {
   private readonly quest: QuestManager;
   private readonly audio = new AudioSynthesizer();
   private readonly soundToggle: SoundToggle | null;
+  private readonly touch: TouchControls;
 
   private readonly player: Player;
   private readonly sevki: NPC;
@@ -60,7 +62,8 @@ export class Game {
   private classStartTime = -1;
 
   constructor(canvas: HTMLCanvasElement, private readonly options: GameOptions = {}) {
-    this.display = new Display(canvas, VIEW_WIDTH, VIEW_HEIGHT);
+    // Portrait phones get a taller view (up to the whole room height).
+    this.display = new Display(canvas, VIEW_WIDTH, VIEW_HEIGHT, MAP_ROWS * TILE, (w, h) => this.onViewResize(w, h));
     this.input = new InputManager(window);
 
     const rng = mulberry32(CLASSROOM_SEED);
@@ -71,7 +74,8 @@ export class Game {
 
     this.renderer = new ClassroomRenderer(map, sprites);
     this.props = this.renderer.createProps();
-    this.camera = new Camera(VIEW_WIDTH, VIEW_HEIGHT, map.width, map.height);
+    this.camera = new Camera(VIEW_WIDTH, this.display.height, map.width, map.height);
+    this.view.h = this.display.height;
 
     const shadow = sprites.shadow();
     this.player = new Player(map.playerSpawn, sprites.getCharacterSheet(PROFESSOR), shadow, this.input, world, this.audio);
@@ -102,6 +106,19 @@ export class Game {
 
     this.interactions = new InteractionSystem(this.player, this.input, sprites.keyPrompt(), this.quest);
 
+    // ---- Mobile: touch-to-move, tap-to-interact, INTERACT button
+    this.touch = new TouchControls(
+      {
+        canvas,
+        camera: this.camera,
+        player: this.player,
+        focusedTarget: () => this.interactions.focusedTarget,
+        isPaused: () => this.modals.isOpen,
+      },
+      this.input,
+      sprites.touchRing(),
+    );
+
     this.loop = new GameLoop(
       (dt) => this.update(dt),
       (alpha) => this.render(alpha),
@@ -124,6 +141,7 @@ export class Game {
   destroy(): void {
     this.loop.stop();
     this.input.dispose();
+    this.touch.dispose();
     this.display.dispose();
     this.modals.dispose();
     this.soundToggle?.dispose();
@@ -138,6 +156,14 @@ export class Game {
     this.interactions.clearFocus();
   }
 
+  /** Display changed its internal height (phone rotated / resized). */
+  private onViewResize(width: number, height: number): void {
+    // Called once from the Display constructor too, before the camera exists.
+    this.camera?.resize(width, height);
+    this.view.w = width;
+    this.view.h = height;
+  }
+
   private update(dt: number): void {
     this.time += dt;
     const paused = this.modals.isOpen;
@@ -145,6 +171,7 @@ export class Game {
     const swallowInput = this.modals.consumeJustClosed();
 
     this.player.frozen = paused;
+    this.touch.update(dt);
     for (const e of this.entities) e.snapshot();
     for (const e of this.entities) e.update(dt);
 
@@ -191,6 +218,7 @@ export class Game {
     // 4. overlays in world space (effects, bubbles, prompts, emotes)
     ctx.save();
     ctx.translate(-cam.x, -cam.y);
+    this.touch.drawOverlay(ctx);
     this.quest.drawOverlay(ctx, alpha);
     this.sevki.drawOverlay(ctx, alpha);
     this.interactions.drawOverlay(ctx, alpha, this.time);

@@ -11,6 +11,17 @@ export interface InputSource {
   getMoveAxis(): Vec2;
 }
 
+/**
+ * Lets non-keyboard sources (touch controls) drive the same actions.
+ * Keyboard input always wins when both are active.
+ */
+export interface VirtualInputSink {
+  /** Analog movement direction (any length; Player normalises it), or null to release. */
+  setVirtualAxis(axis: Vec2 | null): void;
+  /** Fire a one-shot action, exactly like a key press. */
+  triggerAction(action: Action): void;
+}
+
 const DEFAULT_BINDINGS: Readonly<Record<string, Action>> = {
   KeyW: 'up',
   ArrowUp: 'up',
@@ -34,9 +45,10 @@ function isFormControl(target: EventTarget | null): boolean {
   );
 }
 
-export class InputManager implements InputSource {
+export class InputManager implements InputSource, VirtualInputSink {
   private readonly heldKeys = new Set<string>();
   private readonly pressed = new Set<Action>();
+  private virtualAxis: Vec2 | null = null;
 
   constructor(
     private readonly target: Window = window,
@@ -59,10 +71,18 @@ export class InputManager implements InputSource {
   }
 
   getMoveAxis(): Vec2 {
-    return {
-      x: (this.isDown('right') ? 1 : 0) - (this.isDown('left') ? 1 : 0),
-      y: (this.isDown('down') ? 1 : 0) - (this.isDown('up') ? 1 : 0),
-    };
+    const x = (this.isDown('right') ? 1 : 0) - (this.isDown('left') ? 1 : 0);
+    const y = (this.isDown('down') ? 1 : 0) - (this.isDown('up') ? 1 : 0);
+    if (x === 0 && y === 0 && this.virtualAxis) return { x: this.virtualAxis.x, y: this.virtualAxis.y };
+    return { x, y };
+  }
+
+  setVirtualAxis(axis: Vec2 | null): void {
+    this.virtualAxis = axis;
+  }
+
+  triggerAction(action: Action): void {
+    this.pressed.add(action);
   }
 
   /** Call after every fixed update step to clear one-shot presses. */
@@ -93,5 +113,6 @@ export class InputManager implements InputSource {
   private readonly reset = (): void => {
     this.heldKeys.clear();
     this.pressed.clear();
+    this.virtualAxis = null;
   };
 }
