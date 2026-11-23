@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DO TO LEARN: The Presentation Trap</title>
+    <meta name="description" content="A pixel-art Teachers' Day surprise for CEIT 111 at METU." />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Crect width='8' height='8' fill='%2314121a'/%3E%3Crect x='1' y='3' width='6' height='4' fill='%23f2c14e'/%3E%3Crect x='3' y='1' width='2' height='6' fill='%23d63031'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --bg: #14121a;
+        --ink: #f4f1e8;
+        --muted: #9a94a8;
+        --accent: #f0b44c;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        height: 100%;
+        background: var(--bg);
+        overflow: hidden;
+      }
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Press Start 2P', ui-monospace, monospace;
+        color: var(--ink);
+      }
+      #game {
+        display: block;
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+        box-shadow: 0 0 0 4px #000, 0 12px 40px rgba(0, 0, 0, 0.6);
+      }
+      #hud {
+        position: fixed;
+        top: 12px;
+        left: 16px;
+        pointer-events: none;
+        text-shadow: 2px 2px 0 #000;
+        line-height: 1.7;
+      }
+      #hud .title { font-size: 12px; color: var(--accent); }
+      #hud .title span { color: var(--ink); }
+      #hud .hint { font-size: 8px; color: var(--muted); transition: opacity 1s; }
+      #hud-right {
+        position: fixed;
+        top: 12px;
+        right: 16px;
+        z-index: 60;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 8px;
+      }
+      #fps {
+        font-size: 8px;
+        color: var(--muted);
+        text-shadow: 2px 2px 0 #000;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+    <div id="hud">
+      <div class="title">DO TO LEARN: <span>The Presentation Trap</span></div>
+      <div class="hint" id="hint">WASD / ARROWS: WALK &nbsp;·&nbsp; E / SPACE: INTERACT</div>
+    </div>
+    <div id="hud-right"><div id="fps"></div></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
