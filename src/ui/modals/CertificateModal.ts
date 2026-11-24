@@ -1,9 +1,11 @@
 import type { SoundPlayer } from '../../engine/AudioSynthesizer';
 import type { CertificateChoice } from '../../systems/QuestManager';
+import { downloadCertificatePng } from '../CertificateImage';
+import { CERTIFICATE } from '../certificateContent';
 import { button, el, pixelPortrait } from '../dom';
 import type { ModalView } from '../ModalView';
 
-/** Step 4 — the full-screen Teachers' Day card, formatted by the professor's own rules. */
+/** Step 4 — the full-screen Teachers' Day card, downloadable as a PNG. */
 export class CertificateModal implements ModalView<CertificateChoice> {
   readonly layout = 'fullscreen' as const;
 
@@ -18,8 +20,8 @@ export class CertificateModal implements ModalView<CertificateChoice> {
     const card = el('div', 'cert');
     const inner = el('div', 'cert-inner');
 
-    inner.append(el('div', 'cert-ribbon', 'CEIT 111 · METU · 24 NOVEMBER 2026'));
-    inner.append(el('h1', 'cert-title', "HAPPY TEACHERS' DAY, HOCAM!"));
+    inner.append(el('div', 'cert-ribbon', CERTIFICATE.ribbon));
+    inner.append(el('h1', 'cert-title', CERTIFICATE.title));
 
     if (this.portraits.length) {
       const row = el('div', 'cert-portraits');
@@ -27,37 +29,44 @@ export class CertificateModal implements ModalView<CertificateChoice> {
       inner.append(row);
     }
 
-    inner.append(
-      el(
-        'p',
-        'cert-body',
-        "Thank you for inspiring us in CEIT 111. We didn't just learn to do—we DID to learn! (And yes, we checked the parentheses and references.)",
-      ),
-    );
+    inner.append(el('p', 'cert-body', CERTIFICATE.body));
 
     const refs = el('div', 'cert-refs');
-    refs.append(el('div', 'cert-refs-title', 'References'));
-    const r1 = el('div', 'cert-ref');
-    r1.append(
-      document.createTextNode('1. You, Hocam. (2026). '),
-      el('em', undefined, '"Do to Learn: Mastering Presentations & Formatting."'),
-      document.createTextNode(' CEIT 111 Lectures, METU.'),
-    );
-    const r2 = el('div', 'cert-ref');
-    r2.append(
-      document.createTextNode('2. Şevki. (2026). '),
-      el('em', undefined, 'Classroom Survival & Technical Support Guide'),
-      document.createTextNode('.'),
-    );
-    refs.append(r1, r2);
+    refs.append(el('div', 'cert-refs-title', CERTIFICATE.referencesTitle));
+    for (const runs of CERTIFICATE.references) {
+      const ref = el('div', 'cert-ref');
+      ref.append(...runs.map((r) => (r.italic ? el('em', undefined, r.text) : document.createTextNode(r.text))));
+      refs.append(ref);
+    }
     inner.append(refs);
-    inner.append(el('div', 'cert-pagenum', '(1)'));
 
     card.append(inner);
     host.append(card);
 
+    const download = button('Download PNG', 'px-btn px-btn--ok', () => {
+      download.disabled = true;
+      download.textContent = 'Saving...';
+      downloadCertificatePng(this.portraits)
+        .then(() => {
+          this.sound.play('success');
+          download.textContent = 'Saved!';
+        })
+        .catch((err) => {
+          console.error('[certificate]', err);
+          download.textContent = 'Download failed';
+        })
+        .finally(() => {
+          window.setTimeout(() => {
+            download.disabled = false;
+            download.textContent = 'Download PNG';
+          }, 1500);
+        });
+    });
+    download.classList.add('px-btn--download');
+
     const actions = el('div', 'cert-actions');
     actions.append(
+      download,
       button('Play Again', 'px-btn px-btn--ok', () => done('replay')),
       button('Keep Celebrating', 'px-btn px-btn--ghost', () => done('close')),
     );
